@@ -1,0 +1,910 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+<meta charset="UTF-8"/>
+<meta name="viewport" content="width=device-width, initial-scale=1.0"/>
+<title>Validador de Direcciones MX</title>
+<style>
+  :root {
+    --bg: #F0F4F8;
+    --surface: #FFFFFF;
+    --surface2: #F7FAFB;
+    --border: #DDE5ED;
+    --border-focus: #3B82F6;
+    --text-primary: #0F2233;
+    --text-secondary: #4A6178;
+    --text-muted: #8A9EB0;
+    --accent: #1A56DB;
+    --accent-hover: #1547C0;
+    --accent-light: #EEF3FE;
+    --success: #0B7754;
+    --success-bg: #EAFAF4;
+    --success-border: #A7DFC9;
+    --warn: #92400E;
+    --warn-bg: #FFFBEB;
+    --warn-border: #FCD34D;
+    --err: #9B1C1C;
+    --err-bg: #FEF2F2;
+    --err-border: #FECACA;
+    --info: #1E40AF;
+    --info-bg: #EFF6FF;
+    --info-border: #BFDBFE;
+    --msg-bg: #F0FDF4;
+    --msg-border: #86EFAC;
+    --radius: 10px;
+    --radius-sm: 6px;
+    --shadow: 0 1px 4px rgba(15,34,51,.07), 0 4px 16px rgba(15,34,51,.05);
+  }
+
+  * { box-sizing: border-box; margin: 0; padding: 0; }
+
+  body {
+    font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif;
+    background: var(--bg);
+    min-height: 100vh;
+    color: var(--text-primary);
+    font-size: 15px;
+    line-height: 1.5;
+  }
+
+  /* ── LOGIN ── */
+  #login-screen {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    min-height: 100vh;
+    padding: 1.5rem;
+  }
+  .login-box {
+    background: var(--surface);
+    border-radius: 14px;
+    box-shadow: var(--shadow);
+    padding: 2.5rem 2rem;
+    width: 100%;
+    max-width: 380px;
+    border: 1px solid var(--border);
+  }
+  .login-logo {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    margin-bottom: 1.75rem;
+  }
+  .login-logo .icon {
+    width: 40px; height: 40px;
+    background: var(--accent);
+    border-radius: 10px;
+    display: flex; align-items: center; justify-content: center;
+    flex-shrink: 0;
+  }
+  .login-logo h1 { font-size: 17px; font-weight: 700; color: var(--text-primary); }
+  .login-logo p { font-size: 12px; color: var(--text-muted); margin-top: 1px; }
+  .login-field { margin-bottom: 1rem; }
+  .login-field label { display: block; font-size: 12px; font-weight: 600; color: var(--text-secondary); margin-bottom: 5px; text-transform: uppercase; letter-spacing: .04em; }
+  .login-field input { width: 100%; padding: 10px 12px; border: 1.5px solid var(--border); border-radius: var(--radius-sm); font-size: 14px; color: var(--text-primary); background: var(--surface2); transition: border .15s; }
+  .login-field input:focus { outline: none; border-color: var(--border-focus); background: #fff; }
+  .login-err { font-size: 12px; color: var(--err); background: var(--err-bg); border: 1px solid var(--err-border); border-radius: var(--radius-sm); padding: 8px 12px; margin-bottom: 1rem; display: none; }
+  .login-btn { width: 100%; background: var(--accent); color: #fff; border: none; border-radius: var(--radius-sm); padding: 11px; font-size: 14px; font-weight: 700; cursor: pointer; transition: background .15s; margin-top: .25rem; }
+  .login-btn:hover { background: var(--accent-hover); }
+
+  /* ── APP ── */
+  #app-screen { display: none; }
+
+  .topbar {
+    background: var(--surface);
+    border-bottom: 1px solid var(--border);
+    padding: .75rem 1.5rem;
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    position: sticky;
+    top: 0;
+    z-index: 10;
+  }
+  .topbar-left { display: flex; align-items: center; gap: 10px; }
+  .topbar-icon {
+    width: 32px; height: 32px;
+    background: var(--accent);
+    border-radius: 8px;
+    display: flex; align-items: center; justify-content: center;
+    flex-shrink: 0;
+  }
+  .topbar h1 { font-size: 15px; font-weight: 700; color: var(--text-primary); }
+  .topbar-right { display: flex; align-items: center; gap: 10px; }
+  .api-pill {
+    display: flex; align-items: center; gap: 6px;
+    background: var(--surface2);
+    border: 1px solid var(--border);
+    border-radius: 20px;
+    padding: 4px 10px 4px 8px;
+    cursor: pointer;
+    font-size: 12px;
+    color: var(--text-secondary);
+    font-weight: 500;
+    transition: all .15s;
+    position: relative;
+  }
+  .api-pill:hover { border-color: var(--accent); color: var(--accent); }
+  .api-dot { width: 7px; height: 7px; border-radius: 50%; background: #D1D5DB; flex-shrink: 0; }
+  .api-dot.active { background: #10B981; }
+  .logout-btn { font-size: 12px; color: var(--text-muted); cursor: pointer; padding: 4px 8px; border-radius: 20px; border: 1px solid var(--border); background: transparent; transition: all .15s; }
+  .logout-btn:hover { border-color: var(--err-border); color: var(--err); }
+
+  /* API Panel dropdown */
+  .api-panel {
+    position: absolute;
+    top: calc(100% + 8px);
+    right: 0;
+    background: var(--surface);
+    border: 1px solid var(--border);
+    border-radius: var(--radius);
+    box-shadow: var(--shadow);
+    padding: 1rem;
+    width: 320px;
+    display: none;
+    z-index: 100;
+  }
+  .api-panel.open { display: block; }
+  .api-panel label { font-size: 11px; font-weight: 600; color: var(--text-secondary); text-transform: uppercase; letter-spacing: .04em; display: block; margin-bottom: 5px; }
+  .api-panel input { width: 100%; padding: 8px 10px; border: 1px solid var(--border); border-radius: var(--radius-sm); font-size: 12px; font-family: monospace; color: var(--text-primary); background: var(--surface2); }
+  .api-panel input:focus { outline: none; border-color: var(--border-focus); }
+  .api-panel-hint { font-size: 11px; color: var(--text-muted); margin-top: 5px; }
+
+  /* ── MAIN CONTENT ── */
+  .main { max-width: 680px; margin: 0 auto; padding: 1.5rem 1rem 3rem; }
+
+  .card {
+    background: var(--surface);
+    border-radius: var(--radius);
+    border: 1px solid var(--border);
+    box-shadow: var(--shadow);
+    padding: 1.25rem 1.5rem;
+    margin-bottom: 1rem;
+  }
+  .card-title {
+    font-size: 11px;
+    font-weight: 700;
+    color: var(--text-muted);
+    text-transform: uppercase;
+    letter-spacing: .07em;
+    margin-bottom: 1rem;
+    display: flex;
+    align-items: center;
+    gap: 6px;
+  }
+
+  /* Fields */
+  .field { display: flex; flex-direction: column; gap: 4px; margin-bottom: 10px; }
+  .field:last-child { margin-bottom: 0; }
+  .field label { font-size: 11px; font-weight: 600; color: var(--text-secondary); text-transform: uppercase; letter-spacing: .04em; }
+  .field input, .field textarea {
+    width: 100%;
+    padding: 9px 12px;
+    border: 1.5px solid var(--border);
+    border-radius: var(--radius-sm);
+    font-size: 14px;
+    color: var(--text-primary);
+    background: var(--surface2);
+    transition: border .15s, background .15s;
+    font-family: inherit;
+    resize: none;
+  }
+  .field input:focus, .field textarea:focus { outline: none; border-color: var(--border-focus); background: #fff; }
+  .field input::placeholder, .field textarea::placeholder { color: var(--text-muted); }
+  .fields-row { display: grid; grid-template-columns: 1fr 1fr; gap: 10px; margin-bottom: 10px; }
+  .fields-row .field { margin-bottom: 0; }
+
+  .order-hint {
+    background: var(--info-bg);
+    border: 1px solid var(--info-border);
+    border-radius: var(--radius-sm);
+    padding: 9px 13px;
+    font-size: 12.5px;
+    color: var(--info);
+    font-weight: 500;
+    margin-bottom: 10px;
+  }
+
+  /* Buttons */
+  .btn-row { display: flex; gap: 8px; margin-top: 1rem; flex-wrap: wrap; }
+  .btn {
+    font-size: 14px; font-weight: 600; cursor: pointer;
+    border-radius: var(--radius-sm); padding: 10px 22px;
+    border: 1.5px solid var(--border);
+    background: var(--surface2);
+    color: var(--text-primary);
+    transition: all .15s;
+    font-family: inherit;
+  }
+  .btn:hover { background: var(--bg); }
+  .btn.primary { background: var(--accent); color: #fff; border-color: var(--accent); }
+  .btn.primary:hover { background: var(--accent-hover); border-color: var(--accent-hover); }
+  .btn:disabled { opacity: .4; cursor: not-allowed; }
+  .btn.sm { font-size: 12px; padding: 6px 14px; }
+
+  /* Loading */
+  .loading { display: none; align-items: center; gap: 10px; padding: .6rem 0; color: var(--text-secondary); font-size: 13px; }
+  .spin { width: 18px; height: 18px; border: 2px solid var(--border); border-top-color: var(--accent); border-radius: 50%; animation: spin .7s linear infinite; flex-shrink: 0; }
+  @keyframes spin { to { transform: rotate(360deg); } }
+
+  /* Results */
+  .results { display: none; }
+  .results.show { display: block; }
+
+  /* Score */
+  .score-card {
+    display: flex; align-items: center; gap: 16px;
+    padding: 14px 16px;
+    border-radius: var(--radius-sm);
+    background: var(--surface2);
+    border: 1px solid var(--border);
+    margin-bottom: 1rem;
+  }
+  .score-num { font-size: 34px; font-weight: 800; line-height: 1; min-width: 62px; }
+  .score-verdict { font-size: 14px; font-weight: 700; color: var(--text-primary); }
+  .score-sub { font-size: 12px; color: var(--text-muted); margin-top: 2px; }
+
+  /* Checks */
+  .checks { display: flex; flex-direction: column; gap: 5px; }
+  .cr { display: flex; align-items: flex-start; gap: 9px; padding: 9px 12px; border-radius: var(--radius-sm); border: 1px solid; }
+  .ok-c { background: var(--success-bg); border-color: var(--success-border); }
+  .warn-c { background: var(--warn-bg); border-color: var(--warn-border); }
+  .err-c { background: var(--err-bg); border-color: var(--err-border); }
+  .info-c { background: var(--info-bg); border-color: var(--info-border); }
+  .ci { width: 20px; height: 20px; border-radius: 50%; display: flex; align-items: center; justify-content: center; flex-shrink: 0; margin-top: 1px; font-size: 10px; font-weight: 800; }
+  .ok-c .ci { background: var(--success); color: #fff; }
+  .warn-c .ci { background: var(--warn); color: #fff; }
+  .err-c .ci { background: var(--err); color: #fff; }
+  .info-c .ci { background: var(--info); color: #fff; }
+  .ct { font-size: 13px; font-weight: 600; color: var(--text-primary); }
+  .cd { font-size: 12px; color: var(--text-secondary); margin-top: 2px; line-height: 1.5; }
+
+  /* Dirección confirmada */
+  .corrbox {
+    padding: 14px 16px;
+    border-radius: var(--radius-sm);
+    border: 1px solid var(--info-border);
+    background: var(--info-bg);
+    margin-bottom: 0;
+  }
+  .corrbox .cl {
+    font-size: 11px; font-weight: 700; color: var(--accent);
+    text-transform: uppercase; letter-spacing: .05em;
+    margin-bottom: 8px;
+    display: flex; align-items: center; justify-content: space-between;
+  }
+  .corrbox .ca { font-size: 14px; color: #1E3A8A; line-height: 1.7; word-break: break-word; font-weight: 500; }
+  .copy-btn {
+    background: var(--accent); color: #fff; border: none;
+    border-radius: var(--radius-sm); padding: 5px 13px;
+    font-size: 12px; font-weight: 700; cursor: pointer;
+    display: flex; align-items: center; gap: 4px;
+    transition: all .15s; white-space: nowrap; flex-shrink: 0;
+    font-family: inherit;
+  }
+  .copy-btn:hover { background: var(--accent-hover); }
+  .copy-btn.copied { background: var(--success); }
+
+  /* Mapa */
+  .map-wrap { border-radius: var(--radius-sm); overflow: hidden; border: 1px solid var(--border); height: 260px; background: var(--surface2); }
+  #map-interactive { width: 100%; height: 100%; }
+  .cbox { font-size: 12px; padding: 10px 12px; border-radius: var(--radius-sm); border: 1px solid var(--border); background: var(--surface2); color: var(--text-secondary); font-family: monospace; margin: 10px 0; line-height: 1.9; }
+  .links-grid { display: flex; gap: 8px; flex-wrap: wrap; margin-top: 10px; }
+  .lb { font-size: 12px; font-weight: 600; padding: 7px 14px; border-radius: 20px; border: 1.5px solid var(--border); background: var(--surface); color: var(--accent); text-decoration: none; display: inline-block; transition: all .15s; }
+  .lb:hover { background: var(--info-bg); border-color: var(--info-border); }
+
+  /* Mensaje para cliente */
+  .msg-box {
+    background: var(--msg-bg);
+    border: 1.5px solid var(--msg-border);
+    border-radius: var(--radius-sm);
+    padding: 14px 16px;
+  }
+  .msg-box .msg-text { font-size: 14px; color: #14532D; line-height: 1.7; white-space: pre-wrap; word-break: break-word; }
+  .msg-actions { display: flex; align-items: center; gap: 8px; margin-top: 12px; }
+  .msg-hint { font-size: 11px; color: var(--text-muted); }
+
+  /* Raw */
+  .raw-toggle { font-size: 11px; color: var(--text-muted); cursor: pointer; text-decoration: underline; display: inline-block; margin-top: .5rem; }
+  .raw-box { font-size: 11px; font-family: monospace; color: var(--text-secondary); background: var(--surface2); border-radius: var(--radius-sm); border: 1px solid var(--border); padding: 10px; margin-top: 8px; white-space: pre-wrap; display: none; max-height: 180px; overflow-y: auto; }
+
+  /* Divider */
+  .section-gap { height: .5rem; }
+
+  @media(max-width: 500px) {
+    .fields-row { grid-template-columns: 1fr; }
+    .topbar h1 { font-size: 13px; }
+    .api-pill span { display: none; }
+  }
+</style>
+</head>
+<body>
+
+<!-- ══ LOGIN ══ -->
+<div id="login-screen">
+  <div class="login-box">
+    <div class="login-logo">
+      <div class="icon">
+        <svg width="20" height="20" viewBox="0 0 20 20" fill="none">
+          <circle cx="10" cy="8" r="4.5" stroke="#fff" stroke-width="1.6"/>
+          <path d="M10 12.5V18" stroke="#fff" stroke-width="1.6" stroke-linecap="round"/>
+          <path d="M7 16q3 3 6 0" stroke="#fff" stroke-width="1.3" stroke-linecap="round" fill="none"/>
+        </svg>
+      </div>
+      <div>
+        <h1>Validador de Direcciones</h1>
+        <p>Acceso restringido</p>
+      </div>
+    </div>
+    <div class="login-field">
+      <label>Usuario</label>
+      <input type="text" id="login-user" placeholder="Usuario" autocomplete="username"/>
+    </div>
+    <div class="login-field">
+      <label>Contraseña</label>
+      <input type="password" id="login-pass" placeholder="Contraseña" autocomplete="current-password" onkeydown="if(event.key==='Enter')doLogin()"/>
+    </div>
+    <div class="login-err" id="login-err">Usuario o contraseña incorrectos.</div>
+    <button class="login-btn" onclick="doLogin()">Entrar →</button>
+  </div>
+</div>
+
+<!-- ══ APP ══ -->
+<div id="app-screen">
+
+  <!-- Topbar -->
+  <div class="topbar">
+    <div class="topbar-left">
+      <div class="topbar-icon">
+        <svg width="16" height="16" viewBox="0 0 20 20" fill="none">
+          <circle cx="10" cy="8" r="4.5" stroke="#fff" stroke-width="1.6"/>
+          <path d="M10 12.5V18" stroke="#fff" stroke-width="1.6" stroke-linecap="round"/>
+          <path d="M7 16q3 3 6 0" stroke="#fff" stroke-width="1.3" stroke-linecap="round" fill="none"/>
+        </svg>
+      </div>
+      <h1>Validador de Direcciones MX</h1>
+    </div>
+    <div class="topbar-right" style="position:relative">
+      <div class="api-pill" onclick="toggleApiPanel()">
+        <div class="api-dot" id="api-dot"></div>
+        <span id="api-pill-label">API Key</span>
+      </div>
+      <div class="api-panel" id="api-panel">
+        <label>Google Maps API Key</label>
+        <input type="password" id="api-key" placeholder="AIzaSy..." oninput="checkKey()" autocomplete="off"/>
+        <p class="api-panel-hint">La key no se guarda ni se comparte. Se usa solo para consultar Google Maps desde tu navegador.</p>
+      </div>
+      <button class="logout-btn" onclick="doLogout()">Salir</button>
+    </div>
+  </div>
+
+  <!-- Main -->
+  <div class="main">
+
+    <!-- 1. Texto libre -->
+    <div class="card">
+      <div class="card-title">📌 Pega aquí la dirección completa</div>
+      <div class="order-hint">La herramienta separa automáticamente en el orden: <strong>Calle · Colonia · CP · Ciudad · Estado</strong></div>
+      <div class="field">
+        <textarea id="f-libre" rows="2" placeholder="Introduce aquí la dirección completa del cliente"></textarea>
+      </div>
+    </div>
+
+    <!-- 2. Campos individuales -->
+    <div class="card">
+      <div class="card-title">📍 Dirección del cliente</div>
+      <div class="field">
+        <label>Calle y Número</label>
+        <input type="text" id="f-calle" placeholder="Calle y número"/>
+      </div>
+      <div class="fields-row">
+        <div class="field">
+          <label>Colonia / Fraccionamiento</label>
+          <input type="text" id="f-colonia" placeholder="Colonia"/>
+        </div>
+        <div class="field">
+          <label>Código Postal</label>
+          <input type="text" id="f-cp" placeholder="CP (5 dígitos)" maxlength="5"/>
+        </div>
+      </div>
+      <div class="fields-row">
+        <div class="field">
+          <label>Ciudad / Municipio / Alcaldía</label>
+          <input type="text" id="f-ciudad" placeholder="Ciudad o municipio"/>
+        </div>
+        <div class="field">
+          <label>Estado</label>
+          <input type="text" id="f-estado" placeholder="Estado"/>
+        </div>
+      </div>
+      <div class="btn-row">
+        <button class="btn primary" id="btn-val" onclick="validar()">Validar dirección →</button>
+        <button class="btn" onclick="limpiar()">Limpiar</button>
+      </div>
+    </div>
+
+    <!-- Loading -->
+    <div class="loading" id="loading">
+      <div class="spin"></div>
+      <span id="lmsg">Consultando Google Maps...</span>
+    </div>
+
+    <!-- Resultados -->
+    <div class="results" id="results">
+
+      <!-- 3. Dirección confirmada -->
+      <div class="card" id="corr-sec" style="display:none">
+        <div class="card-title">✅ Dirección normalizada por Google Maps</div>
+        <div class="corrbox">
+          <div class="cl">
+            <span>Dirección oficial confirmada</span>
+            <button class="copy-btn" id="copy-btn" onclick="copiarDireccion()">📋 Copiar</button>
+          </div>
+          <div class="ca" id="corr-addr"></div>
+        </div>
+      </div>
+
+      <!-- 4. Mapa -->
+      <div class="card" id="geo-sec" style="display:none">
+        <div class="card-title">🗺️ Ubicación en mapa</div>
+        <div class="map-wrap"><div id="map-interactive"></div></div>
+        <div class="cbox" id="cbox"></div>
+        <div class="links-grid" id="lrow"></div>
+      </div>
+
+      <!-- 5. Validación -->
+      <div class="card" id="val-card">
+        <div class="card-title">📊 Resultado de la validación</div>
+        <div class="score-card">
+          <div class="score-num" id="snum">—</div>
+          <div>
+            <div class="score-verdict" id="sverdict">—</div>
+            <div class="score-sub" id="ssub">—</div>
+          </div>
+        </div>
+        <div class="checks" id="checks-list"></div>
+        <span class="raw-toggle" onclick="toggleRaw()">Ver respuesta técnica de Google</span>
+        <div class="raw-box" id="raw-box"></div>
+      </div>
+
+      <!-- 6. Mensaje para cliente -->
+      <div class="card" id="msg-card" style="display:none">
+        <div class="card-title">💬 Mensaje para el cliente</div>
+        <div class="msg-box">
+          <div class="msg-text" id="msg-text"></div>
+        </div>
+        <div class="msg-actions">
+          <button class="btn sm primary" id="copy-msg-btn" onclick="copiarMensaje()">📋 Copiar mensaje</button>
+          <span class="msg-hint">Copia y envía este mensaje directamente al cliente</span>
+        </div>
+      </div>
+
+    </div><!-- /results -->
+  </div><!-- /main -->
+</div><!-- /app -->
+
+<script>
+// ── CREDENCIALES ──
+const CREDS = { user: 'Pedidos', pass: '230616' };
+const API_KEY_DEFAULT = 'AIzaSyDnlFClY8u54Mq1AyVQuAbfV0qeOJRTWRs';
+let dirCompleta = '';
+let mensajeCliente = '';
+
+// ── LOGIN ──
+function doLogin() {
+  const u = document.getElementById('login-user').value.trim();
+  const p = document.getElementById('login-pass').value;
+  const err = document.getElementById('login-err');
+  if (u === CREDS.user && p === CREDS.pass) {
+    document.getElementById('login-screen').style.display = 'none';
+    document.getElementById('app-screen').style.display = 'block';
+    document.getElementById('api-key').value = API_KEY_DEFAULT;
+    checkKey();
+    err.style.display = 'none';
+  } else {
+    err.style.display = 'block';
+    document.getElementById('login-pass').value = '';
+  }
+}
+
+function doLogout() {
+  document.getElementById('login-screen').style.display = 'flex';
+  document.getElementById('app-screen').style.display = 'none';
+  document.getElementById('login-user').value = '';
+  document.getElementById('login-pass').value = '';
+  limpiar();
+}
+
+// ── API PANEL ──
+function toggleApiPanel() {
+  document.getElementById('api-panel').classList.toggle('open');
+}
+document.addEventListener('click', e => {
+  const pill = document.querySelector('.api-pill');
+  const panel = document.getElementById('api-panel');
+  if (!pill.contains(e.target) && !panel.contains(e.target)) panel.classList.remove('open');
+});
+
+function checkKey() {
+  const k = document.getElementById('api-key').value.trim();
+  const dot = document.getElementById('api-dot');
+  const label = document.getElementById('api-pill-label');
+  if (k.startsWith('AIza') && k.length > 30) {
+    dot.className = 'api-dot active';
+    label.textContent = 'API activa';
+  } else {
+    dot.className = 'api-dot';
+    label.textContent = 'API Key';
+  }
+}
+
+// ── HELPERS ──
+function limpiar() {
+  ['f-estado','f-ciudad','f-cp','f-colonia','f-calle','f-libre'].forEach(id => document.getElementById(id).value = '');
+  document.getElementById('results').classList.remove('show');
+  document.getElementById('loading').style.display = '';
+  dirCompleta = ''; mensajeCliente = '';
+}
+
+function setLoading(m) { document.getElementById('loading').style.display = 'flex'; document.getElementById('lmsg').textContent = m; }
+function hideLoading() { document.getElementById('loading').style.display = ''; }
+
+// Diccionario estados
+const stMap = {
+  'jalisco':'Jalisco','jal.':'Jalisco','jal':'Jalisco',
+  'cdmx':'Ciudad de México','ciudad de méxico':'Ciudad de México','ciudad de mexico':'Ciudad de México','df':'Ciudad de México',
+  'nuevo león':'Nuevo León','nuevo leon':'Nuevo León','n.l.':'Nuevo León','nl':'Nuevo León',
+  'edomex':'Estado de México','edo.mex':'Estado de México','estado de mexico':'Estado de México',
+  'puebla':'Puebla','pue.':'Puebla','pue':'Puebla',
+  'veracruz':'Veracruz','ver.':'Veracruz','ver':'Veracruz',
+  'guanajuato':'Guanajuato','gto.':'Guanajuato','gto':'Guanajuato',
+  'chihuahua':'Chihuahua','chih.':'Chihuahua','chih':'Chihuahua',
+  'baja california sur':'Baja California Sur','b.c.s.':'Baja California Sur','bcs':'Baja California Sur',
+  'baja california':'Baja California','b.c.':'Baja California','bc':'Baja California',
+  'sonora':'Sonora','son.':'Sonora','son':'Sonora',
+  'coahuila':'Coahuila','coah.':'Coahuila','coah':'Coahuila',
+  'tamaulipas':'Tamaulipas','tamps.':'Tamaulipas','tamps':'Tamaulipas',
+  'oaxaca':'Oaxaca','oax.':'Oaxaca','oax':'Oaxaca',
+  'guerrero':'Guerrero','gro.':'Guerrero','gro':'Guerrero',
+  'michoacán':'Michoacán','michoacan':'Michoacán','mich.':'Michoacán','mich':'Michoacán',
+  'sinaloa':'Sinaloa','sin.':'Sinaloa',
+  'hidalgo':'Hidalgo','hgo.':'Hidalgo','hgo':'Hidalgo',
+  'querétaro':'Querétaro','queretaro':'Querétaro','qro.':'Querétaro','qro':'Querétaro',
+  'morelos':'Morelos','mor.':'Morelos','mor':'Morelos',
+  'yucatán':'Yucatán','yucatan':'Yucatán','yuc.':'Yucatán','yuc':'Yucatán',
+  'tabasco':'Tabasco','tab.':'Tabasco','tab':'Tabasco',
+  'durango':'Durango','dgo.':'Durango','dgo':'Durango',
+  'zacatecas':'Zacatecas','zac.':'Zacatecas','zac':'Zacatecas',
+  'aguascalientes':'Aguascalientes','ags.':'Aguascalientes','ags':'Aguascalientes',
+  'colima':'Colima','col.':'Colima',
+  'campeche':'Campeche','camp.':'Campeche','camp':'Campeche',
+  'nayarit':'Nayarit','nay.':'Nayarit','nay':'Nayarit',
+  'tlaxcala':'Tlaxcala','tlax.':'Tlaxcala','tlax':'Tlaxcala',
+  'quintana roo':'Quintana Roo','q.roo':'Quintana Roo','qroo':'Quintana Roo',
+  'chiapas':'Chiapas','chis.':'Chiapas','chis':'Chiapas',
+  'san luis potosí':'San Luis Potosí','san luis potosi':'San Luis Potosí','s.l.p.':'San Luis Potosí','slp':'San Luis Potosí'
+};
+
+function parseLibre() {
+  const libre = document.getElementById('f-libre').value.trim();
+  if (!libre) return;
+  const ll = libre.toLowerCase().normalize('NFD').replace(/[\u0300-\u036f]/g,'');
+  const cpM = libre.match(/\b(\d{5})\b/);
+  if (cpM && !document.getElementById('f-cp').value) document.getElementById('f-cp').value = cpM[1];
+  if (!document.getElementById('f-estado').value) {
+    const sorted = Object.entries(stMap).sort((a,b) => b[0].length - a[0].length);
+    for (const [k,v] of sorted) {
+      if (ll.includes(k.normalize('NFD').replace(/[\u0300-\u036f]/g,''))) { document.getElementById('f-estado').value = v; break; }
+    }
+  }
+  const parts = libre.split(',').map(p => p.trim()).filter(Boolean);
+  if (!document.getElementById('f-calle').value && parts[0] && !parts[0].match(/^\d{5}$/)) document.getElementById('f-calle').value = parts[0];
+  if (!document.getElementById('f-colonia').value && parts[1]) {
+    const p = parts[1].replace(/\b\d{5}\b/,'').trim();
+    if (p && !p.match(/^(estado|municipio|alcaldia)/i)) document.getElementById('f-colonia').value = p;
+  }
+  if (parts[2]) {
+    const seg = parts[2];
+    const cpInSeg = seg.match(/\b(\d{5})\b/);
+    if (cpInSeg && !document.getElementById('f-cp').value) document.getElementById('f-cp').value = cpInSeg[1];
+    let ciudadCand = seg.replace(/\b\d{5}\b/,'').trim();
+    for (const [k] of Object.entries(stMap)) {
+      const kn = k.normalize('NFD').replace(/[\u0300-\u036f]/g,'');
+      ciudadCand = ciudadCand.replace(new RegExp('\\b'+kn+'\\b','gi'),'').trim();
+    }
+    if (ciudadCand && !document.getElementById('f-ciudad').value && ciudadCand.length > 1) document.getElementById('f-ciudad').value = ciudadCand;
+  }
+  if (parts[3] && !document.getElementById('f-estado').value) document.getElementById('f-estado').value = parts[3];
+}
+
+function buildQuery() {
+  const libre = document.getElementById('f-libre').value.trim();
+  const calle = document.getElementById('f-calle').value.trim();
+  const colonia = document.getElementById('f-colonia').value.trim();
+  const cp = document.getElementById('f-cp').value.trim();
+  const ciudad = document.getElementById('f-ciudad').value.trim();
+  const estado = document.getElementById('f-estado').value.trim();
+  if (libre && !calle && !colonia && !cp) return libre + ', México';
+  return [calle, colonia, cp, ciudad, estado, 'México'].filter(Boolean).join(', ');
+}
+
+function norm(s) { return (s||'').toLowerCase().normalize('NFD').replace(/[\u0300-\u036f]/g,'').replace(/[.,\-]/g,' ').replace(/\s+/g,' ').trim(); }
+function sim(a,b) {
+  const na=norm(a), nb=norm(b);
+  if (!na||!nb) return 0;
+  if (na===nb) return 1;
+  if (na.includes(nb)||nb.includes(na)) return 0.9;
+  const wa=na.split(' '), wb=nb.split(' ');
+  const c=wa.filter(w=>w.length>2&&wb.some(x=>x.includes(w)||w.includes(x)));
+  return c.length/Math.max(wa.length,wb.length);
+}
+
+function chk(list,type,title,detail) {
+  const ic={ok:'✓',warn:'!',err:'✗',info:'i'};
+  const cls={ok:'ok-c',warn:'warn-c',err:'err-c',info:'info-c'};
+  list.push(`<div class="cr ${cls[type]}"><div class="ci">${ic[type]}</div><div style="flex:1"><div class="ct">${title}</div>${detail?`<div class="cd">${detail}</div>`:''}</div></div>`);
+}
+
+// ── VALIDAR ──
+async function validar() {
+  parseLibre();
+  const apiKey = document.getElementById('api-key').value.trim();
+  if (!apiKey || !apiKey.startsWith('AIza')) { alert('La API Key de Google Maps no está configurada.'); return; }
+  const query = buildQuery();
+  if (!query || query.trim() === 'México') { alert('Ingresa al menos la calle o la dirección completa.'); return; }
+  document.getElementById('btn-val').disabled = true;
+  document.getElementById('results').classList.remove('show');
+  setLoading('Consultando Google Maps...');
+
+  let data;
+  try {
+    const url = `https://maps.googleapis.com/maps/api/geocode/json?address=${encodeURIComponent(query)}&key=${apiKey}&language=es&region=mx&components=country:MX`;
+    const r = await fetch(url);
+    if (!r.ok) throw new Error('HTTP ' + r.status);
+    data = await r.json();
+  } catch(e) {
+    hideLoading();
+    alert('Error de red: ' + e.message);
+    document.getElementById('btn-val').disabled = false;
+    return;
+  }
+  hideLoading();
+
+  const checks = [];
+  let score = 0, maxS = 0;
+
+  if (data.status === 'REQUEST_DENIED') {
+    chk(checks,'err','API Key rechazada',data.error_message||'Verifica que la Geocoding API esté habilitada.');
+    renderResults(checks,0,'Error de autenticación','Revisa tu API Key',null,null,null,data,null,apiKey);
+    return;
+  }
+  if (data.status==='OVER_DAILY_LIMIT'||data.status==='OVER_QUERY_LIMIT') {
+    chk(checks,'err','Límite de consultas excedido','Espera 24h o revisa tu plan en Google Cloud.');
+    renderResults(checks,0,'Límite excedido','',null,null,null,data,null,apiKey);
+    return;
+  }
+  if (data.status==='ZERO_RESULTS'||!data.results||!data.results.length) {
+    chk(checks,'err','❌ Dirección NO encontrada por Google Maps','Google no localizó esta dirección. Verifica la calle, colonia y CP con el cliente.');
+    renderResults(checks,0,'Dirección no localizable','Google Maps no encontró ningún resultado',null,null,null,data,null,apiKey);
+    return;
+  }
+
+  const res = data.results[0];
+  const comps = {};
+  res.address_components.forEach(c => { c.types.forEach(t => { comps[t] = {long:c.long_name,short:c.short_name}; }); });
+  const lat = res.geometry.location.lat;
+  const lng = res.geometry.location.lng;
+  const locType = res.geometry.location_type;
+  const formatted = res.formatted_address;
+
+  const fCalle = document.getElementById('f-calle').value.trim();
+  const fColonia = document.getElementById('f-colonia').value.trim();
+  const fCp = document.getElementById('f-cp').value.trim();
+  const fCiudad = document.getElementById('f-ciudad').value.trim();
+  const fEstado = document.getElementById('f-estado').value.trim();
+
+  // Rastrear qué falta para el mensaje
+  const faltantes = [];
+
+  maxS += 30;
+  if (locType==='ROOFTOP') { score+=30; chk(checks,'ok','✅ Precisión exacta — nivel de puerta','Dirección localizada con precisión máxima. Muy confiable para entregas.'); }
+  else if (locType==='RANGE_INTERPOLATED') { score+=20; chk(checks,'warn','⚠️ Precisión interpolada — calle encontrada, número aproximado','Confiable, puede variar algunos metros.'); }
+  else if (locType==='GEOMETRIC_CENTER') { score+=12; chk(checks,'warn','⚠️ Precisión a nivel de zona','Google encontró la zona pero no la dirección exacta.'); }
+  else { score+=6; chk(checks,'warn','Localización aproximada','Google encontró algo cercano pero no la dirección exacta.'); }
+
+  if (fCp) {
+    maxS += 20;
+    const gCp = comps['postal_code'] ? comps['postal_code'].long : '';
+    if (!gCp) { score+=10; chk(checks,'warn',`CP ${fCp} — no confirmado por Google`,'Cartografía incompleta en la zona, pero la dirección sí fue localizada.'); }
+    else if (fCp===gCp) { score+=20; chk(checks,'ok',`✅ CP ${fCp} correcto`,`Google confirma el código postal ${gCp}.`); }
+    else { chk(checks,'err',`❌ CP incorrecto — el cliente dio ${fCp}, el correcto es ${gCp}`,`El CP no coincide.`); faltantes.push(`el código postal correcto (es *${gCp}*, no ${fCp})`); }
+  } else { faltantes.push('el código postal'); }
+
+  if (fEstado) {
+    maxS += 15;
+    const gEst = comps['administrative_area_level_1'] ? comps['administrative_area_level_1'].long : '';
+    const s = sim(fEstado, gEst);
+    if (s>0.6) { score+=15; chk(checks,'ok','✅ Estado correcto',`"${fEstado}" — Google confirma: ${gEst}`); }
+    else if (gEst) { chk(checks,'err',`❌ Estado incorrecto — dio "${fEstado}", correcto: "${gEst}"`,`La dirección pertenece a ${gEst}.`); faltantes.push(`el estado correcto (es *${gEst}*)`); }
+    else { score+=8; chk(checks,'info','Estado no confirmado independientemente',''); }
+  } else { faltantes.push('el estado'); }
+
+  if (fCiudad) {
+    maxS += 10;
+    const gMun = comps['locality'] ? comps['locality'].long : (comps['administrative_area_level_2'] ? comps['administrative_area_level_2'].long : '');
+    const s = sim(fCiudad, gMun);
+    if (s>0.5) { score+=10; chk(checks,'ok','✅ Ciudad / municipio correcto',`"${fCiudad}" — Google confirma: ${gMun}`); }
+    else if (gMun) { score+=4; chk(checks,'warn','Ciudad con posible variación',`Cliente puso "${fCiudad}", Google dice "${gMun}".`); }
+    else { score+=5; chk(checks,'info','Ciudad no confirmada de forma independiente',''); }
+  } else { faltantes.push('la ciudad o municipio'); }
+
+  if (fColonia) {
+    maxS += 15;
+    const gSub = comps['sublocality_level_1'] ? comps['sublocality_level_1'].long : (comps['neighborhood'] ? comps['neighborhood'].long : (comps['sublocality'] ? comps['sublocality'].long : ''));
+    const formNorm = norm(formatted);
+    if (gSub && sim(fColonia,gSub)>0.5) { score+=15; chk(checks,'ok','✅ Colonia confirmada',`"${fColonia}" — Google: ${gSub}`); }
+    else if (formNorm.includes(norm(fColonia))) { score+=12; chk(checks,'ok','✅ Colonia confirmada en la dirección',`"${fColonia}" aparece en la dirección de Google Maps.`); }
+    else if (gSub) { score+=6; chk(checks,'warn','Colonia con posible variación',`Cliente: "${fColonia}", Google: "${gSub}".`); faltantes.push(`confirmar su colonia (Google la identifica como *${gSub}*)`); }
+    else { score+=4; chk(checks,'warn','Colonia no confirmada por separado','La zona sí fue localizada.'); }
+  } else { faltantes.push('la colonia o fraccionamiento'); }
+
+  if (fCalle) {
+    maxS += 10;
+    const gRoute = comps['route'] ? comps['route'].long : '';
+    if (gRoute && sim(fCalle,gRoute)>0.5) { score+=10; chk(checks,'ok','✅ Calle localizada',`Google confirma: "${gRoute}"`); }
+    else if (locType==='ROOFTOP') { score+=10; chk(checks,'ok','✅ Calle localizada con precisión de puerta',''); }
+    else if (locType==='RANGE_INTERPOLATED') { score+=7; chk(checks,'warn','Calle encontrada, número estimado',''); }
+    else { score+=3; chk(checks,'warn','Calle no confirmada exactamente',`"${fCalle}" no pudo verificarse, pero la zona sí.`); faltantes.push('el nombre exacto de su calle'); }
+  } else { faltantes.push('el nombre de la calle y número'); }
+
+  // Número exterior ausente
+  if (fCalle && !fCalle.match(/\d/)) { faltantes.push('el número exterior de su domicilio'); }
+
+  if (data.results.length > 1) chk(checks,'warn',`Google encontró ${data.results.length} posibles coincidencias`,'La más probable es la mostrada.');
+
+  const pct = maxS > 0 ? Math.round((score/maxS)*100) : 0;
+  renderResults(checks, pct, null, null, lat, lng, formatted, data, locType, apiKey, faltantes, pct);
+}
+
+function renderResults(checks, pct, vo, so, lat, lng, formatted, data, locType, apiKey, faltantes=[], score=100) {
+  let verdict, col;
+  if (vo) { verdict=vo; col='#9B1C1C'; }
+  else if (pct>=80) { verdict='✅ Dirección confiable — procede con la entrega'; col='#0B7754'; }
+  else if (pct>=55) { verdict='⚠️ Dirección con observaciones — revisa los puntos marcados'; col='#92400E'; }
+  else { verdict='❌ Dirección poco confiable — contacta al cliente'; col='#9B1C1C'; }
+
+  document.getElementById('snum').textContent = pct + '%';
+  document.getElementById('snum').style.color = col;
+  document.getElementById('sverdict').textContent = verdict;
+  document.getElementById('ssub').textContent = so || (formatted ? 'Google Maps devolvió una dirección normalizada' : 'Sin resultados de Google Maps');
+  document.getElementById('checks-list').innerHTML = checks.join('');
+
+  if (formatted) {
+    document.getElementById('corr-sec').style.display = 'block';
+    dirCompleta = lat && lng ? `${formatted}, REF: ${lat.toFixed(7)},${lng.toFixed(7)}` : formatted;
+    document.getElementById('corr-addr').textContent = dirCompleta;
+    const btn = document.getElementById('copy-btn');
+    btn.innerHTML = '📋 Copiar'; btn.className = 'copy-btn';
+  } else { document.getElementById('corr-sec').style.display = 'none'; }
+
+  if (lat && lng && apiKey) {
+    document.getElementById('geo-sec').style.display = 'block';
+    const prec = locType==='ROOFTOP' ? 'Exacta (nivel de puerta)' : locType==='RANGE_INTERPOLATED' ? 'Interpolada (nivel de calle)' : 'Aproximada (zona)';
+    document.getElementById('cbox').innerHTML = `Latitud:&nbsp;&nbsp; ${lat.toFixed(7)}\nLongitud: ${lng.toFixed(7)}\nPrecisión: ${prec}`;
+    const coord = `${lat},${lng}`;
+    const mq = encodeURIComponent(formatted||coord);
+    document.getElementById('lrow').innerHTML = `
+      <a class="lb" href="https://www.google.com/maps?q=${coord}" target="_blank">📍 Google Maps</a>
+      <a class="lb" href="https://waze.com/ul?ll=${coord}&navigate=yes" target="_blank">🚗 Waze</a>
+      <a class="lb" href="https://maps.apple.com/?q=${mq}" target="_blank">🍎 Apple Maps</a>`;
+    // Cargar mapa interactivo
+    initMap(lat, lng, apiKey);
+  } else if (formatted) {
+    document.getElementById('geo-sec').style.display = 'block';
+    document.getElementById('cbox').innerHTML = 'Coordenadas no disponibles';
+    document.getElementById('lrow').innerHTML = `<a class="lb" href="https://www.google.com/maps/search/?api=1&query=${encodeURIComponent(formatted)}" target="_blank">🔍 Buscar en Google Maps</a>`;
+  } else { document.getElementById('geo-sec').style.display = 'none'; }
+
+  // Mensaje para cliente
+  const necesitaMensaje = faltantes.length > 0 || score < 75;
+  const msgCard = document.getElementById('msg-card');
+  if (necesitaMensaje && faltantes.length > 0) {
+    const lista = faltantes.map(d => `💠 ${d}`).join('\n');
+    mensajeCliente = `Hola, buen día 😊\n\nNos dimos cuenta que hizo falta:\n\n${lista}\n\npara poder entregarle su pedido lo más rápido posible sin ningún retraso.\n\nCualquier duda estamos a sus órdenes!`;
+    document.getElementById('msg-text').textContent = mensajeCliente;
+    const copyMsgBtn = document.getElementById('copy-msg-btn');
+    copyMsgBtn.innerHTML = '📋 Copiar mensaje'; copyMsgBtn.className = 'btn sm primary';
+    msgCard.style.display = 'block';
+  } else { msgCard.style.display = 'none'; }
+
+  document.getElementById('raw-box').textContent = JSON.stringify(data.results ? data.results[0] : data, null, 2);
+  document.getElementById('results').classList.add('show');
+  document.getElementById('btn-val').disabled = false;
+  document.getElementById('results').scrollIntoView({behavior:'smooth', block:'start'});
+}
+
+function copiarDireccion() {
+  if (!dirCompleta) return;
+  const btn = document.getElementById('copy-btn');
+  navigator.clipboard.writeText(dirCompleta).then(() => {
+    btn.innerHTML = '✅ Copiado'; btn.className = 'copy-btn copied';
+    setTimeout(() => { btn.innerHTML = '📋 Copiar'; btn.className = 'copy-btn'; }, 2500);
+  }).catch(() => {
+    const ta = document.createElement('textarea');
+    ta.value = dirCompleta; document.body.appendChild(ta); ta.select(); document.execCommand('copy'); document.body.removeChild(ta);
+    btn.innerHTML = '✅ Copiado'; btn.className = 'copy-btn copied';
+    setTimeout(() => { btn.innerHTML = '📋 Copiar'; btn.className = 'copy-btn'; }, 2500);
+  });
+}
+
+function copiarMensaje() {
+  if (!mensajeCliente) return;
+  const btn = document.getElementById('copy-msg-btn');
+  navigator.clipboard.writeText(mensajeCliente).then(() => {
+    btn.innerHTML = '✅ Copiado!'; btn.className = 'btn sm primary';
+    setTimeout(() => { btn.innerHTML = '📋 Copiar mensaje'; }, 2500);
+  }).catch(() => {
+    const ta = document.createElement('textarea');
+    ta.value = mensajeCliente; document.body.appendChild(ta); ta.select(); document.execCommand('copy'); document.body.removeChild(ta);
+    btn.innerHTML = '✅ Copiado!';
+    setTimeout(() => { btn.innerHTML = '📋 Copiar mensaje'; }, 2500);
+  });
+}
+
+function toggleRaw() {
+  const b = document.getElementById('raw-box');
+  b.style.display = b.style.display === 'none' || b.style.display === '' ? 'block' : 'none';
+}
+
+let mapInstance = null;
+let mapsApiLoaded = false;
+let pendingMapInit = null;
+
+function initMap(lat, lng, apiKey) {
+  if (mapsApiLoaded && window.google && window.google.maps) {
+    renderMap(lat, lng);
+  } else {
+    pendingMapInit = { lat, lng };
+    if (!mapsApiLoaded) {
+      mapsApiLoaded = true;
+      const script = document.createElement('script');
+      script.src = `https://maps.googleapis.com/maps/api/js?key=${apiKey}&callback=onMapsReady`;
+      script.async = true;
+      script.defer = true;
+      document.head.appendChild(script);
+    }
+  }
+}
+
+window.onMapsReady = function() {
+  if (pendingMapInit) {
+    renderMap(pendingMapInit.lat, pendingMapInit.lng);
+  }
+};
+
+function renderMap(lat, lng) {
+  const container = document.getElementById('map-interactive');
+  if (!container) return;
+  const position = { lat: parseFloat(lat), lng: parseFloat(lng) };
+  if (mapInstance) {
+    mapInstance.setCenter(position);
+    mapInstance.setZoom(17);
+    new google.maps.Marker({ position, map: mapInstance, animation: google.maps.Animation.DROP });
+  } else {
+    mapInstance = new google.maps.Map(container, {
+      center: position,
+      zoom: 17,
+      mapTypeControl: false,
+      streetViewControl: true,
+      fullscreenControl: true,
+      zoomControl: true,
+      styles: [
+        { featureType: 'poi', elementType: 'labels', stylers: [{ visibility: 'off' }] }
+      ]
+    });
+    new google.maps.Marker({ position, map: mapInstance, animation: google.maps.Animation.DROP });
+  }
+}
+</script>
+</body>
+</html>
